@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Downloader</title>
+  <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'ink-gold');}catch(e){}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Custom Title Bar -->
+  <div class="titlebar" id="titlebar">
+    <div class="titlebar-drag">
+      <div class="titlebar-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path class="tb-play" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+        </svg>
+      </div>
+      <span class="titlebar-title">YouTube Downloader</span>
+    </div>
+    <div class="titlebar-controls">
+      <button class="titlebar-btn" id="btn-minimize" title="최소화">
+        <svg width="12" height="12" viewBox="0 0 12 12"><rect y="5" width="12" height="1.5" rx="0.75" fill="currentColor"/></svg>
+      </button>
+      <button class="titlebar-btn" id="btn-maximize" title="최대화">
+        <svg width="12" height="12" viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+      </button>
+      <button class="titlebar-btn btn-close" id="btn-close" title="닫기">
+        <svg width="12" height="12" viewBox="0 0 12 12"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Dependency Warning -->
+  <div class="dependency-warning" id="dependency-warning" style="display: none;">
+    <div class="dep-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+    <div class="dep-content">
+      <h3>필수 프로그램이 설치되지 않았습니다</h3>
+      <p id="dep-message"></p>
+      <div class="dep-instructions">
+        <p>아래 명령어로 설치할 수 있습니다:</p>
+        <code id="dep-install-cmd"></code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="main-container">
+    <!-- URL Input Section -->
+    <div class="input-section glass-card">
+      <div class="input-header">
+        <h2>
+          <span class="gradient-text">영상 다운로드</span>
+        </h2>
+        <p class="subtitle">유튜브 링크를 붙여넣고 MP4로 다운로드하세요</p>
+      </div>
+      <div class="url-input-wrapper">
+        <div class="input-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <input type="text" id="url-input" placeholder="유튜브 URL을 붙여넣으세요..." autocomplete="off" spellcheck="false">
+        <button class="btn-fetch" id="btn-fetch" title="영상 정보 가져오기">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+            <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>검색</span>
+        </button>
+      </div>
+      <div class="clipwatch-row">
+        <label>
+          <input type="checkbox" id="clipboard-watch" checked>
+          <span>복사한 유튜브 주소 자동 감지</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Download Queue (hidden until it has items) -->
+    <div class="queue-section glass-card" id="queue-section" style="display: none;">
+      <div class="queue-head">
+        <div class="queue-title">다운로드 대기열<span id="queue-count"></span></div>
+        <button class="btn-mini" id="btn-queue-clear">대기 목록 비우기</button>
+      </div>
+      <div class="queue-items" id="queue-items"></div>
+    </div>
+
+    <!-- Video Info Section (hidden by default) -->
+    <div class="video-info-section glass-card" id="video-info-section" style="display: none;">
+      <div class="video-preview">
+        <div class="thumbnail-wrapper">
+          <img id="video-thumbnail" src="" alt="썸네일">
+          <div class="duration-badge" id="video-duration">0:00</div>
+        </div>
+        <div class="video-details">
+          <h3 id="video-title" class="video-title">영상 제목</h3>
+          <p class="video-uploader" id="video-uploader">채널명</p>
+          <p class="video-views" id="video-views">조회수</p>
+        </div>
+      </div>
+
+      <div class="download-options">
+        <div class="option-group">
+          <label class="option-label">화질 선택</label>
+          <div class="select-wrapper">
+            <select id="quality-select">
+              <option value="2160">4K (2160p)</option>
+              <option value="1080" selected>Full HD (1080p)</option>
+              <option value="720">HD (720p)</option>
+              <option value="480">SD (480p)</option>
+              <option value="360">Low (360p)</option>
+            </select>
+            <div class="select-arrow">
+              <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="option-group">
+          <label class="option-label">저장 위치</label>
+          <div class="path-selector">
+            <span class="path-text" id="download-path" title="">~/Downloads</span>
+            <button class="btn-browse" id="btn-browse" title="폴더 변경">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2v11z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video format (codec) -->
+      <div class="codec-row">
+        <span class="codec-label">영상 형식</span>
+        <div class="select-wrapper codec-select">
+          <select id="codec-mode">
+            <option value="compat" selected>호환성 우선 — H.264 + AAC</option>
+            <option value="quality">화질 우선 — 4K 가능 (AV1/VP9)</option>
+            <option value="audio">음원만 — MP3로 저장</option>
+          </select>
+          <div class="select-arrow">
+            <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </div>
+        </div>
+      </div>
+      <p class="codec-hint" id="codec-hint"></p>
+
+      <!-- Clip (section) options -->
+      <div class="subtitle-row clip-row">
+        <label class="subtitle-toggle">
+          <input type="checkbox" id="clip-enable">
+          <span>구간만 받기</span>
+        </label>
+        <div class="clip-times" id="clip-times">
+          <input type="text" id="clip-start" placeholder="시작 1:30" autocomplete="off" spellcheck="false" disabled>
+          <span class="clip-tilde">~</span>
+          <input type="text" id="clip-end" placeholder="끝 2:45" autocomplete="off" spellcheck="false" disabled>
+        </div>
+      </div>
+      <p class="subtitle-hint" id="clip-hint" style="display: none;">시작~끝 시간의 구간만 잘라 받습니다. 끝을 비우면 영상 끝까지입니다. 구간 모드에서는 자막·건너뛰기가 적용되지 않습니다.</p>
+
+      <!-- Subtitle options -->
+      <div class="subtitle-row">
+        <label class="subtitle-toggle">
+          <input type="checkbox" id="sub-enable" checked>
+          <span>영어 자막(.srt) 함께 저장</span>
+        </label>
+        <label class="subtitle-toggle skip-toggle">
+          <input type="checkbox" id="skip-existing">
+          <span>이미 받은 것 건너뛰기</span>
+        </label>
+      </div>
+      <p class="subtitle-hint">제작자가 올린 자막이 있으면 그것을, 없으면 자동 생성 자막을 받습니다. 영어 자막이 없는 영상은 건너뜁니다.</p>
+
+      <button class="btn-download" id="btn-download">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>MP4 다운로드</span>
+      </button>
+    </div>
+
+    <!-- Search Results Section (hidden by default) -->
+    <div class="search-section glass-card" id="search-section" style="display: none;">
+      <div class="playlist-header">
+        <div class="playlist-heading">
+          <div class="playlist-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+              <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            검색 결과
+          </div>
+          <h3 class="playlist-title" id="search-query">검색어</h3>
+        </div>
+        <div class="playlist-select-actions">
+          <button class="btn-mini" id="btn-search-all">전체 선택</button>
+          <button class="btn-mini" id="btn-search-none">전체 해제</button>
+        </div>
+      </div>
+
+      <div class="playlist-count-bar">
+        <span id="search-count-text">0개 선택 / 결과 0개</span>
+      </div>
+
+      <div class="search-items" id="search-items"></div>
+
+      <div class="download-options">
+        <div class="option-group">
+          <label class="option-label">화질 선택</label>
+          <div class="select-wrapper">
+            <select id="sr-quality-select">
+              <option value="best" selected>최고 화질 (Auto Best)</option>
+              <option value="2160">4K (2160p)</option>
+              <option value="1440">2K (1440p)</option>
+              <option value="1080">Full HD (1080p)</option>
+              <option value="720">HD (720p)</option>
+              <option value="480">SD (480p)</option>
+              <option value="360">Low (360p)</option>
+            </select>
+            <div class="select-arrow">
+              <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="option-group">
+          <label class="option-label">저장 위치</label>
+          <div class="path-selector">
+            <span class="path-text" id="sr-download-path" title="">~/Downloads</span>
+            <button class="btn-browse" id="btn-sr-browse" title="폴더 변경">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2v11z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="codec-row">
+        <span class="codec-label">영상 형식</span>
+        <div class="select-wrapper codec-select">
+          <select id="sr-codec-mode">
+            <option value="compat" selected>호환성 우선 — H.264 + AAC</option>
+            <option value="quality">화질 우선 — 4K 가능 (AV1/VP9)</option>
+            <option value="audio">음원만 — MP3로 저장</option>
+          </select>
+          <div class="select-arrow">
+            <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </div>
+        </div>
+      </div>
+      <p class="codec-hint" id="sr-codec-hint"></p>
+
+      <div class="subtitle-row">
+        <label class="subtitle-toggle">
+          <input type="checkbox" id="sr-sub-enable" checked>
+          <span>영어 자막(.srt) 함께 저장</span>
+        </label>
+        <label class="subtitle-toggle skip-toggle">
+          <input type="checkbox" id="sr-skip-existing">
+          <span>이미 받은 것 건너뛰기</span>
+        </label>
+      </div>
+
+      <p class="playlist-hint">선택한 영상은 저장 위치에 각각 저장됩니다.</p>
+
+      <button class="btn-download" id="btn-download-search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span id="btn-download-search-label">영상을 선택하세요</span>
+      </button>
+    </div>
+
+    <!-- Playlist Selection Section (hidden by default) -->
+    <div class="playlist-section glass-card" id="playlist-section" style="display: none;">
+      <div class="playlist-header">
+        <div class="playlist-heading">
+          <div class="playlist-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M3 6h13M3 12h13M3 18h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M19 12l4 3-4 3v-6z" fill="currentColor"/>
+            </svg>
+            재생목록
+          </div>
+          <h3 class="playlist-title" id="playlist-title">재생목록 제목</h3>
+          <p class="playlist-uploader" id="playlist-uploader"></p>
+        </div>
+        <div class="playlist-select-actions">
+          <button class="btn-mini" id="btn-select-all">전체 선택</button>
+          <button class="btn-mini" id="btn-select-none">전체 해제</button>
+        </div>
+      </div>
+
+      <div class="playlist-count-bar">
+        <span id="playlist-count-text">0개 선택 / 전체 0개</span>
+      </div>
+
+      <div class="playlist-items" id="playlist-items"></div>
+
+      <div class="download-options">
+        <div class="option-group">
+          <label class="option-label">화질 선택</label>
+          <div class="select-wrapper">
+            <select id="pl-quality-select">
+              <option value="best" selected>최고 화질 (Auto Best)</option>
+              <option value="2160">4K (2160p)</option>
+              <option value="1440">2K (1440p)</option>
+              <option value="1080">Full HD (1080p)</option>
+              <option value="720">HD (720p)</option>
+              <option value="480">SD (480p)</option>
+              <option value="360">Low (360p)</option>
+            </select>
+            <div class="select-arrow">
+              <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="option-group">
+          <label class="option-label">저장 위치</label>
+          <div class="path-selector">
+            <span class="path-text" id="pl-download-path" title="">~/Downloads</span>
+            <button class="btn-browse" id="btn-pl-browse" title="폴더 변경">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2v11z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video format (codec) -->
+      <div class="codec-row">
+        <span class="codec-label">영상 형식</span>
+        <div class="select-wrapper codec-select">
+          <select id="pl-codec-mode">
+            <option value="compat" selected>호환성 우선 — H.264 + AAC</option>
+            <option value="quality">화질 우선 — 4K 가능 (AV1/VP9)</option>
+            <option value="audio">음원만 — MP3로 저장</option>
+          </select>
+          <div class="select-arrow">
+            <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </div>
+        </div>
+      </div>
+      <p class="codec-hint" id="pl-codec-hint"></p>
+
+      <!-- Subtitle options -->
+      <div class="subtitle-row">
+        <label class="subtitle-toggle">
+          <input type="checkbox" id="pl-sub-enable" checked>
+          <span>영어 자막(.srt) 함께 저장</span>
+        </label>
+        <label class="subtitle-toggle skip-toggle">
+          <input type="checkbox" id="pl-skip-existing">
+          <span>이미 받은 것 건너뛰기</span>
+        </label>
+      </div>
+
+      <p class="playlist-hint">선택한 영상은 <strong id="playlist-folder-hint">재생목록 이름</strong> 폴더에 순번을 붙여 저장됩니다. 자막은 제작자가 올린 것을 우선하고, 없으면 자동 생성 자막을 받습니다.</p>
+
+      <button class="btn-download" id="btn-download-playlist">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span id="btn-download-playlist-label">선택한 영상 다운로드</span>
+      </button>
+    </div>
+
+    <!-- Download Progress Section (hidden by default) -->
+    <div class="progress-section glass-card" id="progress-section" style="display: none;">
+      <div class="progress-header">
+        <div class="progress-title-group">
+          <div class="spinner-small" id="progress-spinner"></div>
+          <h3 class="progress-title" id="progress-title">다운로드 준비 중...</h3>
+        </div>
+        <button class="btn-cancel" id="btn-cancel" title="다운로드 취소">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>취소</span>
+        </button>
+      </div>
+
+      <!-- Step Pipeline Visualizer -->
+      <div class="pipeline-stepper" id="pipeline-stepper">
+        <div class="step-item step-active" id="step-1">
+          <div class="step-circle">1</div>
+          <span class="step-label">연결 중</span>
+        </div>
+        <div class="step-line" id="line-1"></div>
+        <div class="step-item" id="step-2">
+          <div class="step-circle">2</div>
+          <span class="step-label">다운로드</span>
+        </div>
+        <div class="step-line" id="line-2"></div>
+        <div class="step-item" id="step-3">
+          <div class="step-circle">3</div>
+          <span class="step-label">MP4 병합</span>
+        </div>
+        <div class="step-line" id="line-3"></div>
+        <div class="step-item" id="step-4">
+          <div class="step-circle">4</div>
+          <span class="step-label">완료</span>
+        </div>
+      </div>
+
+      <!-- Overall Playlist Progress (hidden for single downloads) -->
+      <div class="overall-progress" id="overall-progress" style="display: none;">
+        <div class="overall-progress-head">
+          <span class="overall-label">재생목록 전체 진행</span>
+          <span class="overall-count" id="overall-count">0 / 0</span>
+        </div>
+        <div class="progress-bar progress-bar-slim">
+          <div class="progress-fill overall-fill" id="overall-fill" style="width: 0%"></div>
+        </div>
+        <p class="overall-current" id="overall-current"></p>
+      </div>
+
+      <!-- Main Glowing Progress Bar -->
+      <div class="progress-bar-wrapper">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+          <div class="progress-particle" id="progress-particle"></div>
+        </div>
+        <span class="progress-percent" id="progress-percent">0%</span>
+      </div>
+
+      <!-- Animated Visual Wave Bar -->
+      <div class="visual-wave-container">
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+      </div>
+
+      <!-- Live Metrics Grid -->
+      <div class="progress-metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon speed-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="metric-body">
+            <span class="metric-label">다운로드 속도</span>
+            <span class="metric-value" id="stat-speed">--</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon size-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2"/></svg>
+          </div>
+          <div class="metric-body">
+            <span class="metric-label">파일 크기</span>
+            <span class="metric-value" id="stat-size">--</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon eta-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="metric-body">
+            <span class="metric-label">남은 시간</span>
+            <span class="metric-value" id="stat-eta">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Download Complete Section (hidden by default) -->
+    <div class="complete-section glass-card" id="complete-section" style="display: none;">
+      <div class="complete-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+          <circle class="ok-stroke" cx="12" cy="12" r="10" stroke-width="2"/>
+          <path class="ok-stroke" d="M8 12l3 3 5-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h3 class="complete-title">다운로드 완료!</h3>
+      <p class="complete-filename" id="complete-filename">filename.mp4</p>
+
+      <!-- Playlist result summary (hidden for single downloads) -->
+      <div class="complete-summary" id="complete-summary" style="display: none;">
+        <div class="summary-counts">
+          <span class="summary-ok" id="summary-ok">0개 성공</span>
+          <span class="summary-fail" id="summary-fail" style="display: none;">0개 실패</span>
+        </div>
+        <div class="summary-failed-list" id="summary-failed-list" style="display: none;"></div>
+      </div>
+
+      <div class="complete-actions">
+        <button class="btn-action" id="btn-open-file">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2"/></svg>
+          파일 열기
+        </button>
+        <button class="btn-action btn-secondary" id="btn-open-folder">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2v11z" stroke="currentColor" stroke-width="2"/></svg>
+          폴더 열기
+        </button>
+        <button class="btn-action btn-make" id="btn-make">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 5.6L20 9l-5.6 2.4L12 17l-2.4-5.6L4 9l5.6-1.4L12 2z" fill="currentColor"/></svg>
+          만들기
+        </button>
+        <button class="btn-action btn-secondary" id="btn-new-download">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          새 다운로드
+        </button>
+      </div>
+    </div>
+
+    <!-- Make (변환) Section (hidden by default) -->
+    <div class="make-section glass-card" id="make-section" style="display: none;">
+      <div class="make-head">
+        <div>
+          <div class="playlist-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z" fill="currentColor"/><path d="M19 14l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7.7-1.8z" fill="currentColor"/></svg>
+            만들기
+          </div>
+          <h3 class="make-title" id="make-source-title">받은 영상으로</h3>
+        </div>
+        <button class="btn-mini" id="btn-make-close">닫기</button>
+      </div>
+
+      <div class="make-grid">
+        <button class="make-card" data-make="gif">
+          <div class="make-icon">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 4v16M17 4v16M2 9h5M2 15h5M17 9h5M17 15h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="make-card-title">GIF / 움짤</div>
+          <div class="make-card-desc">구간을 골라 고품질 GIF로</div>
+        </button>
+        <button class="make-card" data-make="mirror">
+          <div class="make-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 3"/><path d="M8 7l-5 5 5 5V7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 7l5 5-5 5V7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="currentColor" fill-opacity="0.25"/></svg>
+          </div>
+          <div class="make-card-title">거울 모드</div>
+          <div class="make-card-desc">좌우 반전 · 따라 하기용</div>
+        </button>
+        <button class="make-card" data-make="vertical">
+          <div class="make-icon">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="6" y="2" width="12" height="20" rx="2" stroke="currentColor" stroke-width="2"/><line x1="10" y1="18" x2="14" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="make-card-title">세로 영상</div>
+          <div class="make-card-desc">9:16 쇼츠 · 릴스용</div>
+        </button>
+        <button class="make-card" data-make="slides">
+          <div class="make-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M2 4h20M3 4v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 16v4M9 22l3-2 3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="make-card-title">슬라이드 PDF</div>
+          <div class="make-card-desc">장면 전환을 PDF로</div>
+        </button>
+        <button class="make-card" data-make="storyboard">
+          <div class="make-icon">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/></svg>
+          </div>
+          <div class="make-card-title">장면 미리보기</div>
+          <div class="make-card-desc">전체를 한 장 격자로</div>
+        </button>
+      </div>
+
+      <!-- 옵션 영역: 선택한 종류에 따라 달라짐 -->
+      <div class="make-options" id="make-options" style="display: none;">
+        <!-- GIF 옵션 -->
+        <div class="make-opt-block" id="make-opt-gif" style="display: none;">
+          <div class="clip-times">
+            <input type="text" id="make-gif-start" placeholder="시작 0:10" autocomplete="off" spellcheck="false">
+            <span class="clip-tilde">~</span>
+            <input type="text" id="make-gif-end" placeholder="끝 0:15" autocomplete="off" spellcheck="false">
+          </div>
+          <p class="make-opt-hint">최대 15초를 권합니다. 끝을 비우면 시작부터 몇 초만 받습니다.</p>
+        </div>
+        <!-- 거울 옵션 -->
+        <div class="make-opt-block" id="make-opt-mirror" style="display: none;">
+          <div class="make-radio-row">
+            <label><input type="radio" name="mirror-mode" value="flip" checked> 좌우 반전</label>
+            <label><input type="radio" name="mirror-mode" value="sidebyside"> 원본 + 거울 나란히</label>
+          </div>
+        </div>
+        <!-- 나머지는 옵션 없음: 안내만 -->
+        <div class="make-opt-block" id="make-opt-note" style="display: none;">
+          <p class="make-opt-hint" id="make-opt-note-text"></p>
+        </div>
+
+        <button class="btn-download" id="btn-make-run">
+          <span id="btn-make-run-label">만들기</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Theme Picker Section -->
+    <div class="theme-section glass-card" id="theme-section">
+      <span class="theme-label">테마</span>
+      <div class="theme-swatches" id="theme-swatches">
+        <button class="theme-swatch" data-theme="ink-gold" title="잉크 & 골드">
+          <span class="sw sw-ink-gold"></span><span class="sw-name">잉크·골드</span>
+        </button>
+        <button class="theme-swatch" data-theme="slate" title="슬레이트 모노">
+          <span class="sw sw-slate"></span><span class="sw-name">슬레이트</span>
+        </button>
+        <button class="theme-swatch" data-theme="teal-copper" title="딥 틸 & 코퍼">
+          <span class="sw sw-teal-copper"></span><span class="sw-name">틸·코퍼</span>
+        </button>
+        <button class="theme-swatch" data-theme="wine" title="와인 & 웜그레이">
+          <span class="sw sw-wine"></span><span class="sw-name">와인</span>
+        </button>
+        <button class="theme-swatch" data-theme="neon" title="클래식 네온">
+          <span class="sw sw-neon"></span><span class="sw-name">네온</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Engine Status Section -->
+    <div class="engine-section glass-card" id="engine-section">
+      <div class="engine-main">
+        <div class="engine-dot" id="engine-dot"></div>
+        <div class="engine-text">
+          <span class="engine-title">다운로드 엔진</span>
+          <span class="engine-status" id="engine-status">확인 중...</span>
+        </div>
+        <div class="engine-actions">
+          <button class="btn-mini" id="btn-engine-update">업데이트</button>
+          <button class="btn-mini btn-mini-warn" id="btn-engine-nightly" title="유튜브 차단으로 다운로드가 안 될 때 사용하세요">긴급 (nightly)</button>
+        </div>
+      </div>
+      <p class="engine-hint" id="engine-hint">유튜브가 방식을 바꾸면 다운로드가 실패할 수 있습니다. 앱을 켤 때마다 엔진을 자동으로 최신 상태로 유지합니다.</p>
+    </div>
+
+    <!-- Download History Section -->
+    <div class="history-section glass-card" id="history-section">
+      <div class="history-header">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          다운로드 이력
+        </h3>
+        <button class="btn-clear-history" id="btn-clear-history" title="이력 지우기">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="history-list" id="history-list">
+        <div class="history-empty" id="history-empty">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" opacity="0.3">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <p>아직 다운로드 이력이 없습니다</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loading-overlay" style="display: none;">
+    <div class="spinner"></div>
+    <p>영상 정보를 가져오는 중...</p>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
