@@ -68,6 +68,7 @@ const completeSection = document.getElementById('complete-section');
 const completeFilename = document.getElementById('complete-filename');
 const btnOpenFile = document.getElementById('btn-open-file');
 const btnOpenFolder = document.getElementById('btn-open-folder');
+const btnSendPolyglot = document.getElementById('btn-send-polyglot');
 const btnNewDownload = document.getElementById('btn-new-download');
 const historyList = document.getElementById('history-list');
 const historyEmpty = document.getElementById('history-empty');
@@ -421,6 +422,18 @@ function setupEventListeners() {
     reportOpenResult(p ? electronAPI.showItemInFolder(p) : electronAPI.openFolder(downloadPath));
   });
 
+  btnSendPolyglot.addEventListener('click', async () => {
+    const p = lastCompletedPath || currentVideoInfo?._filePath;
+    if (!p) { showToast('보낼 파일을 찾지 못했습니다.', 'error'); return; }
+    try {
+      const r = await electronAPI.sendToPolyglot(p);
+      if (r && r.ok) showToast(r.message || 'Polyglot Player로 보냈습니다.', 'success');
+      else showToast((r && r.message) || 'Polyglot Player로 보내지 못했습니다.', 'error');
+    } catch (e) {
+      showToast(`Polyglot Player로 보내지 못했습니다: ${e.message}`, 'error');
+    }
+  });
+
   btnNewDownload.addEventListener('click', resetToInput);
 
   // Clear history
@@ -470,6 +483,13 @@ async function reportOpenResult(promise) {
   } catch (error) {
     showToast(`열 수 없습니다: ${error.message}`, 'error');
   }
+}
+
+// Polyglot으로 보내기 버튼은 재생 가능한 미디어(영상·음원) 한 개일 때만 보인다.
+// GIF·PDF·장면 이미지나 일괄 다운로드에는 넘길 대상이 없으므로 숨긴다.
+const POLYGLOT_MEDIA_RE = /\.(mp4|m4v|webm|mov|avi|mkv|mp3|m4a|wav|flac|ogg|oga|opus|aac|wma)$/i;
+function updatePolyglotButton(filePath) {
+  btnSendPolyglot.style.display = filePath && POLYGLOT_MEDIA_RE.test(filePath) ? '' : 'none';
 }
 
 // 쓰는 사람이 한국어 화자라 한국어 자막은 필요가 없다(한국어 영상은 알아듣고,
@@ -1304,6 +1324,7 @@ function displayVideoComplete(result, ctx) {
   completeSection.style.display = 'block';
   lastCompletedPath = result.filePath || '';
   downloadedVideoPath = result.filePath || '';
+  updatePolyglotButton(result.filePath);
 
   const filename = result.filePath ? result.filePath.split(/[\\/]/).pop() : 'video.mp4';
   completeFilename.textContent = filename;
@@ -1438,6 +1459,7 @@ function startSearchDownload() {
 // 재생목록/검색 일괄 다운로드의 완료 화면. 실패 목록 표기만 종류별로 다르다.
 function displayBatchComplete(result, ctx) {
   completeSection.style.display = 'block';
+  updatePolyglotButton(null); // 일괄 다운로드는 넘길 단일 대상이 없다.
 
   const folder = result.folder || downloadPath;
   lastCompletedPath = result.completed.length === 1 ? result.completed[0].filePath : folder;
@@ -1696,6 +1718,7 @@ function showMakeComplete(outputPath, type, result) {
   completeSummary.style.display = 'none';
   setPipelineStep(4);
   lastCompletedPath = outputPath;
+  updatePolyglotButton(outputPath); // 거울·세로 등 영상 결과만 보이고, GIF·PDF·이미지는 숨는다.
 
   completeFilename.textContent = outputPath.split(/[\\/]/).pop();
 

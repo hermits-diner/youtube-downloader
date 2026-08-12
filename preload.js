@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openFile: (filePath) => ipcRenderer.invoke('open-file', filePath),
   openFolder: (folderPath) => ipcRenderer.invoke('open-folder', folderPath),
   showItemInFolder: (filePath) => ipcRenderer.invoke('show-item-in-folder', filePath),
+  sendToPolyglot: (filePath) => ipcRenderer.invoke('send-to-polyglot', filePath),
 
   // Make (변환)
   makeGif: (options) => ipcRenderer.invoke('make-gif', options),

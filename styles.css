@@ -2026,6 +2026,16 @@ select option {
   color: #fff !important;
 }
 
+.btn-polyglot {
+  background: transparent;
+  border: 1.5px solid var(--accent-purple);
+  color: var(--accent-purple);
+}
+.btn-polyglot:hover {
+  background: rgba(var(--accent-rgb), 0.12);
+  border-color: var(--accent-purple);
+}
+
 .make-section {
   padding: 24px;
   animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);

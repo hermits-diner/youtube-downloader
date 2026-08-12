@@ -663,14 +663,14 @@ function isFragmentFile(filePath) {
   return /\.f\d+\.[a-z0-9]+$/i.test(filePath);
 }
 
-// --write-subs와 --write-auto-subs를 함께 주면 yt-dlp가 알아서 제작자 자막을 우선하고
-// 없을 때만 자동 생성 자막을 받는다. 둘 다 받아 중복 파일이 생기지는 않는다.
-// 요청한 언어가 없는 영상은 조용히 건너뛰며 본 다운로드에는 영향을 주지 않는다.
+// 받아쓰기·정독 등 정확한 학습에 쓰려면 자동 생성(ASR) 자막은 오히려 방해가 된다.
+// 그래서 --write-subs만 주고 --write-auto-subs는 뺀다 → 제작자가 직접 올린 자막만 받는다.
+// 요청한 언어의 수동 자막이 없는 영상은 자막 없이 조용히 건너뛰며, 본 다운로드에는
+// 영향을 주지 않는다.
 function buildSubtitleArgs(subtitles) {
   if (!subtitles || !subtitles.enabled || !subtitles.langs) return [];
   return [
     '--write-subs',
-    '--write-auto-subs',
     '--sub-langs', subtitles.langs,
     '--convert-subs', 'srt',
   ];
@@ -1707,4 +1707,60 @@ ipcMain.handle('show-item-in-folder', async (event, filePath) => {
   }
   shell.showItemInFolder(filePath);
   return { ok: true };
+});
+
+// ─── Send to Polyglot Player ───
+
+// 같은 제작자의 언어학습 앱(Polyglot Player)을 찾아 미디어 경로를 실행 인자로 넘긴다.
+// 남의 PC에서도 별도 설정 없이 찾도록, 표준 설치 위치와 레지스트리를 순서대로 확인한다.
+// 설치 방식(사용자별/기기별)이나 설치 폴더 변경과 무관하게 동작하도록 여러 경로를 본다.
+function regQueryPolyglot(hive) {
+  // .pgl 파일 연결 명령( "...\polyglot-player.exe" "%1" )에서 실행 파일 경로를 뽑는다.
+  const key = `${hive}\\Software\\Classes\\PolyglotPlayerProject\\shell\\open\\command`;
+  return new Promise((resolve) => {
+    execFile('reg', ['query', key, '/ve'], { windowsHide: true }, (err, stdout) => {
+      if (!err && stdout) {
+        const m = stdout.match(/"([^"]+polyglot-player\.exe)"/i);
+        if (m && fs.existsSync(m[1])) return resolve(m[1]);
+      }
+      resolve(null);
+    });
+  });
+}
+
+async function findPolyglotExe() {
+  const candidates = [
+    path.join(process.env.LOCALAPPDATA || '', 'Polyglot Player', 'polyglot-player.exe'), // 사용자별 설치
+    path.join(process.env.PROGRAMFILES || '', 'Polyglot Player', 'polyglot-player.exe'), // 기기별 설치
+    path.join(process.env['ProgramFiles(x86)'] || '', 'Polyglot Player', 'polyglot-player.exe'),
+  ];
+  for (const c of candidates) {
+    if (c && fs.existsSync(c)) return c;
+  }
+  // 설치 폴더를 바꿨어도 파일 연결 등록으로 찾는다(사용자별=HKCU, 기기별=HKLM).
+  for (const hive of ['HKCU', 'HKLM']) {
+    const found = await regQueryPolyglot(hive);
+    if (found) return found;
+  }
+  return null;
+}
+
+ipcMain.handle('send-to-polyglot', async (event, filePath) => {
+  if (!filePath) return { ok: false, message: '보낼 파일 경로가 없습니다.' };
+  if (!fs.existsSync(filePath)) {
+    return { ok: false, message: `파일을 찾을 수 없습니다: ${path.basename(filePath)}` };
+  }
+  const exe = await findPolyglotExe();
+  if (!exe) {
+    return { ok: false, message: 'Polyglot Player를 찾지 못했습니다. 설치되어 있는지 확인하세요.' };
+  }
+  try {
+    // Polyglot이 실행 인자의 미디어를 열고, 옆의 자막(이름.en.srt 등)을 자동 첨부한다.
+    const child = spawn(exe, [filePath], { detached: true, stdio: 'ignore' });
+    child.on('error', () => {}); // spawn 실패는 여기서만 통지되므로 조용히 무시(경로는 이미 확인).
+    child.unref();
+    return { ok: true, message: 'Polyglot Player로 보냈습니다.' };
+  } catch (e) {
+    return { ok: false, message: `Polyglot Player를 실행하지 못했습니다: ${e.message}` };
+  }
 });
