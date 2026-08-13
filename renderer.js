@@ -225,12 +225,12 @@ function wireSettingsPersistence() {
 // ─── Theme Picker ───
 
 const THEME_KEY = 'theme';
-const THEMES = ['ink-gold', 'slate', 'teal-copper', 'wine', 'neon'];
+const THEMES = ['polyglot', 'ink-gold', 'slate', 'teal-copper', 'wine', 'neon'];
 
 function wireThemePicker() {
   let saved;
   try { saved = localStorage.getItem(THEME_KEY); } catch (e) { saved = null; }
-  const current = THEMES.includes(saved) ? saved : 'ink-gold';
+  const current = THEMES.includes(saved) ? saved : 'polyglot';
   applyTheme(current);
   for (const btn of document.querySelectorAll('.theme-swatch')) {
     btn.addEventListener('click', () => applyTheme(btn.dataset.theme));
@@ -238,7 +238,7 @@ function wireThemePicker() {
 }
 
 function applyTheme(theme) {
-  if (!THEMES.includes(theme)) theme = 'ink-gold';
+  if (!THEMES.includes(theme)) theme = 'polyglot';
   document.documentElement.setAttribute('data-theme', theme);
   try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* ignore */ }
   for (const btn of document.querySelectorAll('.theme-swatch')) {

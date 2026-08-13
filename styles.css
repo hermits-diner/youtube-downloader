@@ -3,43 +3,43 @@
    ═══════════════════════════════════════════════════════ */
 
 :root {
-  /* ─── Theme: Ink & Gold (default) ───
-     Named vars below are kept intact so the whole app re-themes by
-     swapping these values. Color washes reference the *-rgb triplets
-     so opacity stays but hue follows the theme. */
-  --bg-primary: #0e1016;
-  --bg-secondary: #14161d;
-  --bg-card: rgba(22, 25, 35, 0.7);
-  --bg-card-hover: rgba(30, 34, 48, 0.8);
+  /* ─── Theme: Polyglot (default) ───
+     Matched to the companion app "Polyglot Player" so the two feel like one
+     set: deep ocean navy-teal base, cyan primary, orange accent. Named vars
+     are kept intact; washes reference the *-rgb triplets to follow the hue. */
+  --bg-primary: #06101a;
+  --bg-secondary: #091722;
+  --bg-card: rgba(12, 28, 40, 0.72);
+  --bg-card-hover: rgba(16, 36, 50, 0.82);
   --border-color: rgba(var(--accent-rgb), 0.15);
   --border-hover: rgba(var(--accent-rgb), 0.35);
 
-  --text-primary: #f2efe6;
-  --text-secondary: #9aa0ad;
-  --text-muted: #6b7180;
+  --text-primary: #e7f0f5;
+  --text-secondary: #b8cad4;
+  --text-muted: #7891a2;
 
-  --accent-purple: #c9a86a;   /* primary accent (gold) */
-  --accent-pink: #b0824f;     /* secondary accent (bronze) */
-  --accent-blue: #4a5b78;     /* tertiary accent (slate) */
-  --accent-green: #7fa88b;    /* success (sage) */
-  --accent-red: #b4534e;      /* danger (terracotta) */
-  --accent-yellow: #cda94f;   /* warning (amber) */
+  --accent-purple: #39d6c5;   /* primary accent (cyan) */
+  --accent-pink: #2ab3a4;     /* primary-deep (teal) — gradient end */
+  --accent-blue: #ff9c55;     /* secondary accent (orange) */
+  --accent-green: #85e89d;    /* success (mint) */
+  --accent-red: #ff8f78;      /* danger (coral) */
+  --accent-yellow: #c47b2b;   /* warning (amber) */
 
-  --accent-rgb: 201, 168, 106;
-  --pink-rgb: 176, 130, 79;
-  --blue-rgb: 74, 91, 120;
-  --green-rgb: 127, 168, 139;
-  --red-rgb: 180, 83, 78;
-  --warn-rgb: 205, 169, 79;
+  --accent-rgb: 57, 214, 197;
+  --pink-rgb: 42, 179, 164;
+  --blue-rgb: 255, 156, 85;
+  --green-rgb: 133, 232, 157;
+  --red-rgb: 255, 143, 120;
+  --warn-rgb: 196, 123, 43;
 
-  --glow-a: rgba(201, 168, 106, 0.06);
-  --glow-b: rgba(74, 91, 120, 0.05);
-  --glow-c: rgba(176, 130, 79, 0.03);
+  --glow-a: rgba(57, 214, 197, 0.06);
+  --glow-b: rgba(20, 43, 58, 0.08);
+  --glow-c: rgba(255, 156, 85, 0.03);
 
-  --gradient-primary: linear-gradient(135deg, #c9a86a, #b0824f);
-  --gradient-secondary: linear-gradient(135deg, #4a5b78, #c9a86a);
-  --gradient-success: linear-gradient(135deg, #7fa88b, #9cbf9f);
-  --gradient-danger: linear-gradient(135deg, #b4534e, #c07a52);
+  --gradient-primary: linear-gradient(135deg, #39d6c5, #2ab3a4);
+  --gradient-secondary: linear-gradient(135deg, #ff9c55, #39d6c5);
+  --gradient-success: linear-gradient(135deg, #85e89d, #5fcf86);
+  --gradient-danger: linear-gradient(135deg, #ff8f78, #ff9c55);
 
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
@@ -58,8 +58,38 @@
 
 /* ═══════════════════════════════════════════════════════
    Theme variants — set data-theme on <html> to switch.
-   Ink & Gold is the default (defined on :root above).
+   Polyglot is the default (defined on :root above).
    ═══════════════════════════════════════════════════════ */
+
+/* ── Ink & Gold ── */
+:root[data-theme="ink-gold"] {
+  --bg-primary: #0e1016;
+  --bg-secondary: #14161d;
+  --bg-card: rgba(22, 25, 35, 0.7);
+  --bg-card-hover: rgba(30, 34, 48, 0.8);
+  --text-primary: #f2efe6;
+  --text-secondary: #9aa0ad;
+  --text-muted: #6b7180;
+  --accent-purple: #c9a86a;
+  --accent-pink: #b0824f;
+  --accent-blue: #4a5b78;
+  --accent-green: #7fa88b;
+  --accent-red: #b4534e;
+  --accent-yellow: #cda94f;
+  --accent-rgb: 201, 168, 106;
+  --pink-rgb: 176, 130, 79;
+  --blue-rgb: 74, 91, 120;
+  --green-rgb: 127, 168, 139;
+  --red-rgb: 180, 83, 78;
+  --warn-rgb: 205, 169, 79;
+  --glow-a: rgba(201, 168, 106, 0.06);
+  --glow-b: rgba(74, 91, 120, 0.05);
+  --glow-c: rgba(176, 130, 79, 0.03);
+  --gradient-primary: linear-gradient(135deg, #c9a86a, #b0824f);
+  --gradient-secondary: linear-gradient(135deg, #4a5b78, #c9a86a);
+  --gradient-success: linear-gradient(135deg, #7fa88b, #9cbf9f);
+  --gradient-danger: linear-gradient(135deg, #b4534e, #c07a52);
+}
 
 /* ── Slate Monochrome ── */
 :root[data-theme="slate"] {
@@ -2013,6 +2043,7 @@ select option {
   color: var(--text-primary);
 }
 
+.sw-polyglot    { background: linear-gradient(135deg, #39d6c5 0 40%, #ff9c55 40% 62%, #06101a 62%); }
 .sw-ink-gold    { background: linear-gradient(135deg, #c9a86a 0 58%, #14161d 58%); }
 .sw-slate       { background: linear-gradient(135deg, #8aa0c4 0 58%, #171b24 58%); }
 .sw-teal-copper { background: linear-gradient(135deg, #c0805a 0 40%, #2f8e80 40% 62%, #13201f 62%); }
